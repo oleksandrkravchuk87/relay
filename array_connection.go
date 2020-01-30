@@ -21,14 +21,15 @@ A simple function that accepts an array and connection arguments, and returns
 a connection object for use in GraphQL. It uses array offsets as pagination,
 so pagination will only work if the array is static.
 */
-func ConnectionFromArray(data []interface{}, args ConnectionArguments) *Connection {
+func ConnectionFromArray(data []interface{}, args ConnectionArguments, staticInfo string) *Connection {
 	return ConnectionFromArraySlice(
 		data,
 		args,
 		ArraySliceMetaInfo{
-			SliceStart:  0,
+			SliceStart:  1,
 			ArrayLength: len(data),
 		},
+		staticInfo,
 	)
 }
 
@@ -45,13 +46,20 @@ func ConnectionFromArraySlice(
 	arraySlice []interface{},
 	args ConnectionArguments,
 	meta ArraySliceMetaInfo,
+	staticInfo string,
 ) *Connection {
 	sliceEnd := meta.SliceStart + len(arraySlice)
-	beforeOffset := GetOffsetWithDefault(args.Before, meta.ArrayLength)
-	afterOffset := GetOffsetWithDefault(args.After, -1)
+	beforeOffset := meta.ArrayLength + 1
+	if args.Before != -1 {
+		beforeOffset = args.Before
+	}
+	afterOffset := -1
+	if args.After != -1 {
+		afterOffset = args.After
+	}
 
 	startOffset := ternaryMax(meta.SliceStart-1, afterOffset, -1) + 1
-	endOffset := ternaryMin(sliceEnd, beforeOffset, meta.ArrayLength)
+	endOffset := ternaryMin(sliceEnd, beforeOffset, meta.ArrayLength+1)
 
 	if args.First != -1 {
 		endOffset = min(endOffset, startOffset+args.First)
@@ -73,24 +81,24 @@ func ConnectionFromArraySlice(
 	edges := []*Edge{}
 	for index, value := range slice {
 		edges = append(edges, &Edge{
-			Cursor: OffsetToCursor(startOffset + index),
+			Cursor: startOffset + index,
 			Node:   value,
 		})
 	}
 
-	var firstEdgeCursor, lastEdgeCursor ConnectionCursor
+	var firstEdgeCursor, lastEdgeCursor int
 	if len(edges) > 0 {
 		firstEdgeCursor = edges[0].Cursor
 		lastEdgeCursor = edges[len(edges)-1:][0].Cursor
 	}
 
-	lowerBound := 0
-	if len(args.After) > 0 {
+	lowerBound := 1
+	if args.After != -1 {
 		lowerBound = afterOffset + 1
 	}
 
 	upperBound := meta.ArrayLength
-	if len(args.Before) > 0 {
+	if args.Before != -1 {
 		upperBound = beforeOffset
 	}
 
@@ -111,8 +119,10 @@ func ConnectionFromArraySlice(
 		EndCursor:       lastEdgeCursor,
 		HasPreviousPage: hasPreviousPage,
 		HasNextPage:     hasNextPage,
+		TotalCount:	 len(arraySlice),
 	}
-
+	
+	conn.StaticInfo = staticInfo
 	return conn
 }
 

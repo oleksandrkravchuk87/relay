@@ -8,16 +8,22 @@ on a field whose return type is a connection type.
 */
 var ConnectionArgs = graphql.FieldConfigArgument{
 	"before": &graphql.ArgumentConfig{
-		Type: graphql.String,
+		Type: graphql.Int,
 	},
 	"after": &graphql.ArgumentConfig{
-		Type: graphql.String,
+		Type: graphql.Int,
 	},
 	"first": &graphql.ArgumentConfig{
 		Type: graphql.Int,
 	},
 	"last": &graphql.ArgumentConfig{
 		Type: graphql.Int,
+	},
+	"sort": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
+	"filter": &graphql.ArgumentConfig{
+		Type: graphql.String,
 	},
 }
 
@@ -60,12 +66,16 @@ var pageInfoType = graphql.NewObject(graphql.ObjectConfig{
 			Description: "When paginating backwards, are there more items?",
 		},
 		"startCursor": &graphql.Field{
-			Type:        graphql.String,
+			Type:        graphql.Int,
 			Description: "When paginating backwards, the cursor to continue.",
 		},
 		"endCursor": &graphql.Field{
-			Type:        graphql.String,
+			Type:        graphql.Int,
 			Description: "When paginating forwards, the cursor to continue.",
+		},
+		"totalCount": &graphql.Field{
+			Type:        graphql.Int,
+			Description: "total Count of records.",
 		},
 	},
 })
@@ -107,6 +117,10 @@ func ConnectionDefinitions(config ConnectionConfig) *GraphQLConnectionDefinition
 			"edges": &graphql.Field{
 				Type:        graphql.NewList(edgeType),
 				Description: "Information to aid in pagination.",
+			},
+			"staticInfo": &graphql.Field{
+				Type:        graphql.String,
+				Description: "static info of page.",
 			},
 		},
 	})
