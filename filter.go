@@ -13,7 +13,7 @@ type DataSet struct {
 	CurRec   interface{}
 }
 
-//IsColumnNameValid : To validate Column Name
+//IsColumnNameValid : To validate Column Name.
 func IsColumnNameValid(Column *string, val reflect.Value) bool {
 	ColumnUp := strings.ToUpper(*Column)
 	var ColumnFound = false
@@ -27,7 +27,7 @@ func IsColumnNameValid(Column *string, val reflect.Value) bool {
 	return ColumnFound
 }
 
-//GetProfilesSubQueries :  Function to Get Sub Queries with ProfileIDs
+//GetProfilesSubQueries :  Function to Get Sub Queries with ProfileIDs.
 func GetProfilesSubQueries(filterConditions string) ([]string, error) {
 	subQuery := GetSubQueries(filterConditions, OPAND, OPOR)
 
