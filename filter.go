@@ -2,6 +2,7 @@ package relay
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -271,6 +272,34 @@ func markRecords(filterConditions string, val reflect.Value, arraySlice map[int]
 						return nil, errors.New("Filter [" + ColumnStruct[1] + "] Column is not primitive type")
 					}
 
+				} else if CurField.Kind() == reflect.Slice {
+					if len(ColumnStruct) < 2 {
+						continue
+					}
+					fieldName := ColumnStruct[1]
+
+					var fieldValueExists bool
+					for i := 0; i < CurField.Len(); i++ {
+						element := CurField.Index(i)
+
+						if !element.IsValid() {
+							return nil, fmt.Errorf("Filter [%s] No such column exist!!!", fieldName)
+						}
+
+						if element.FieldByName("ID").String() == fieldName {
+							fieldValueExists = true
+							if isPrimitive(element.FieldByName("ID")) {
+								if bMatched, err = processPrimitive(element.FieldByName("Value"), Key, Op); err != nil {
+									return nil, err
+								}
+							} else {
+								return nil, fmt.Errorf("Filter [%s] Column is not primitive type", fieldName)
+							}
+						}
+					}
+					if !fieldValueExists {
+						return nil, fmt.Errorf("Filter [%s] No such column exist!!!", fieldName)
+					}
 				}
 				arraySlice[k] = DataSet{bMatched: bMatched, CurRec: arraySlice[k].CurRec}
 			}
