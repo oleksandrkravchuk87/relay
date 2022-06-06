@@ -307,8 +307,8 @@ func itemMatches(item reflect.Value, fieldName, key, op string) (bool, error) {
 		return false, nil
 	}
 
-	if !isPrimitive(item.FieldByName("ID")) {
-		return false, fmt.Errorf("Filter [%s] Column is not primitive type", fieldName)
+	if !isPrimitive(item.FieldByName("Value")) {
+		return false, fmt.Errorf("Filter [%s] Value is not primitive type", fieldName)
 	}
 
 	return processPrimitive(item.FieldByName("Value"), key, op)
