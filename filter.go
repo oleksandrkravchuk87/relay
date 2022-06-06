@@ -277,35 +277,41 @@ func markRecords(filterConditions string, val reflect.Value, arraySlice map[int]
 						continue
 					}
 					fieldName := ColumnStruct[1]
-
-					var fieldValueExists bool
-					for i := 0; i < CurField.Len(); i++ {
-						element := CurField.Index(i)
-
-						if !element.IsValid() {
-							return nil, fmt.Errorf("Filter [%s] No such column exist!!!", fieldName)
-						}
-
-						if element.FieldByName("ID").String() == fieldName {
-							fieldValueExists = true
-							if isPrimitive(element.FieldByName("ID")) {
-								if bMatched, err = processPrimitive(element.FieldByName("Value"), Key, Op); err != nil {
-									return nil, err
-								}
-							} else {
-								return nil, fmt.Errorf("Filter [%s] Column is not primitive type", fieldName)
-							}
-						}
+					if fieldName == "" {
+						return nil, errors.New("Filter applied to slice column but inner field not specified")
 					}
-					if !fieldValueExists {
-						return nil, fmt.Errorf("Filter [%s] No such column exist!!!", fieldName)
+
+					for i := 0; i < CurField.Len(); i++ {
+						item := CurField.Index(i)
+
+						bMatched, err = itemMatches(item, fieldName, Key, Op)
+						if err != nil {
+							return nil, err
+						}
 					}
 				}
+
 				arraySlice[k] = DataSet{bMatched: bMatched, CurRec: arraySlice[k].CurRec}
 			}
 		}
 	}
 	return arraySlice, nil
+}
+
+func itemMatches(item reflect.Value, fieldName, key, op string) (bool, error) {
+	if !item.IsValid() {
+		return false, fmt.Errorf("Filter [%s] No such column exist!!!", fieldName)
+	}
+
+	if item.FieldByName("ID").String() != fieldName {
+		return false, nil
+	}
+
+	if !isPrimitive(item.FieldByName("ID")) {
+		return false, fmt.Errorf("Filter [%s] Column is not primitive type", fieldName)
+	}
+
+	return processPrimitive(item.FieldByName("Value"), key, op)
 }
 
 func isPrimitive(CurField reflect.Value) bool {

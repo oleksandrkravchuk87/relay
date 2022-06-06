@@ -30,6 +30,73 @@ func Test_markRecords(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "marked and not marked, multiple filters",
+			args: args{
+				filterConditions: "{key:someValue,column:dynamicFields.someID}&{key:5,column:SomeID}&{key:true,column:outOfSupport,op:==}",
+				val: func() reflect.Value {
+					return reflect.Indirect(reflect.ValueOf(&Data{}))
+				}(),
+				arraySlice: func() map[int]DataSet {
+					arraySlice := []interface{}{
+						Data{
+							SomeID:       "5",
+							OutOfSupport: true,
+							DynamicFields: []DynamicFieldType{
+								{
+									ID:    "someID",
+									Value: "someValue",
+								},
+							},
+						},
+						Data{
+							SomeID:       "5",
+							OutOfSupport: true,
+							DynamicFields: []DynamicFieldType{
+								{
+									ID:    "someID_2",
+									Value: "someValue",
+								},
+							},
+						},
+					}
+					arraySliceRS := make(map[int]DataSet)
+					for ind := range arraySlice {
+						arraySliceRS[ind] = DataSet{bMatched: false, CurRec: arraySlice[ind]}
+					}
+					return arraySliceRS
+				}(),
+			},
+			want: map[int]DataSet{
+				0: {
+					bMatched: true,
+					CurRec: Data{
+						SomeID:       "5",
+						OutOfSupport: true,
+						DynamicFields: []DynamicFieldType{
+							{
+								ID:    "someID",
+								Value: "someValue",
+							},
+						},
+					},
+				},
+				1: {
+					bMatched: false,
+					CurRec: Data{
+						SomeID:       "5",
+						OutOfSupport: true,
+						DynamicFields: []DynamicFieldType{
+							{
+								ID:    "someID_2",
+								Value: "someValue",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "marked, multiple filters",
 			args: args{
 				filterConditions: "{key:someValue,column:dynamicFields.someID}&{key:5,column:SomeID}&{key:true,column:outOfSupport,op:==}",
@@ -294,7 +361,7 @@ func Test_markRecords(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "err, field not found",
+			name: "field not found, not marked",
 			args: args{
 				filterConditions: "{key:someValue,column:dynamicFields.someID_1}&{key:5,column:SomeID}",
 				val: func() reflect.Value {
@@ -320,11 +387,25 @@ func Test_markRecords(t *testing.T) {
 					return arraySliceRS
 				}(),
 			},
-			want:    nil,
-			wantErr: true,
+			want: map[int]DataSet{
+				0: {
+					bMatched: false,
+					CurRec: Data{
+						SomeID:       "5",
+						OutOfSupport: true,
+						DynamicFields: []DynamicFieldType{
+							{
+								ID:    "someID",
+								Value: "someValue1",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
-			name: "err dynamic field name not provided",
+			name: "dynamic field name not provided",
 			args: args{
 				filterConditions: "{key:someValue,column:dynamicFields.}&{key:5,column:SomeID}",
 				val: func() reflect.Value {
@@ -417,6 +498,7 @@ func Test_markRecords(t *testing.T) {
 									Value: "someValue",
 								},
 							},
+							SliceField: []string{"some"},
 						},
 					}
 					arraySliceRS := make(map[int]DataSet)
@@ -426,8 +508,22 @@ func Test_markRecords(t *testing.T) {
 					return arraySliceRS
 				}(),
 			},
-			want:    nil,
-			wantErr: true,
+			want: map[int]DataSet{
+				0: {
+					bMatched: false,
+					CurRec: Data{
+						SomeID:       "5",
+						OutOfSupport: true,
+						DynamicFields: []DynamicFieldType{
+							{
+								Value: "someValue",
+							},
+						},
+						SliceField: []string{"some"},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
